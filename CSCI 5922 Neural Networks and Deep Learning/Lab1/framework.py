@@ -36,99 +36,85 @@ class MLP:
 
         return
 
-    def initialize(self) -> None:
-        #Complete this function
-        
-        # '''
-        # initialize all biases to zero, and all weights with random sampling from a uniform distribution.
-        # This uniform distribution should have range +/- sqrt(6 / (d_in + d_out))
-        # '''
-        for i in range(self.num_layers):
-            # determine current and prior layer sizes
-            dim_current = self.layer_sizes[i+1]
-            dim_prior = self.layer_sizes[i]
+    def initialize(self) -> None:        
+        '''
+        initialize all biases to zero, and all weights with random sampling from a uniform distribution.
+        This uniform distribution should have range +/- sqrt(6 / (d_in + d_out))
+        '''
 
-            # initialize biases as zeros
-            self.biases.append(torch.zeros(1,dim_current))
+        for layer_number in range(self.num_layers):
+            d_in = self.layer_sizes[layer_number]
+            d_out = self.layer_sizes[layer_number + 1]
 
-            # compute Xavier Uniform Initialization by hand for weights
-            rand_lim = np.sqrt(6/(dim_current + dim_prior))
-            self.weights.append((torch.rand(dim_prior, dim_current)*2 - 1)*rand_lim)  # might error due to improper multiplication?
-
-
+            # Initialize biases and weights
+            self.biases.append(torch.zeros(d_out))
+            low, high = -np.sqrt(6 / (d_in + d_out)), np.sqrt(6 / (d_in + d_out))
+            self.weights.append(torch.empty((d_in, d_out)).uniform_(low, high))
 
         return
 
     def forward(self, x: torch.tensor) -> torch.tensor:
-        #Complete this function 
         '''
         This function should loop over all layers, forward propagating the input via:
         x_i+1 = f(x_iW + b)
-        Remember to STORE THE INTERMEDIATE FEATURES!
+        Remember to STORE THE INTERMEDIATE FEATURES! 
         '''
 
-        # store input as first 'features'
-        self.features.append(x)
+        # Reset features for new forward pass
+        self.features = []
 
         for i in range(self.num_layers):
-            # pass x through weights, biases, and activation function
-            x = self.activation_function.forward(torch.matmul(x, self.weights[i]) + self.biases[i])
+            self.features.append(x) # Input to layer
+            z = torch.matmul(x, self.weights[i]) + self.biases[i]
+            self.features.append(z) # Raw output of layer
 
-            # append x to features
-            self.features.append(x)
-        
-        # compute softmax
-        # x = torch.exp(x) / torch.sum(torch.exp(x))
+            if i < self.num_layers - 1:
+                # Run ReLU for every hidden layer output
+                x = self.activation_function.forward(z)
+            else:
+                # For the last layer, the output is just the logits
+                x = z
 
         return x
     
-
     def backward(self, delta: torch.tensor) -> None:
-        #Complete this function
         '''
         This function should backpropagate the provided delta through the entire MLP, and update the weights according to the hyper-parameters
         stored in the class variables.
         '''
 
-        batch_size = delta.shape[0]  # get batch size
+        dL_dZ = delta
 
-        dCE_dO = [None] * self.num_layers
-        dCE_dW = [None] * self.num_layers
-        dCE_db = [None] * self.num_layers
+        # Updates to last layer are different than hidden layers
+        x_in = self.features[-2]
+        dL_dW = torch.matmul(x_in.T, dL_dZ) / x_in.shape[0]
+        dL_db = dL_dZ.mean(dim = 0)
 
-        # set final error to delta
-        dCE_dO[-1] = delta # 512 x 10
+        delta = torch.matmul(dL_dZ, self.weights[-1].T)
 
-        # backpropagate error
-        for i in reversed(range(self.num_layers)):
-            # compute and multiply gradient of o wrt node value (z)
-            dCE_dZ = self.activation_function.backward(dCE_dO[i], self.features[i+1]) # 512 x 10
-            
-            # combine dCE_dZ and dZ_dW to get dCE_dW using batch matrix multiplication
-            # gradient of node value wrt preceding weights (dZ_dW) is output of previous nodes (out*weight + bias = z)
-            # dCE_dW[i] = torch.matmul(dCE_dZ.T, self.features[i]).T / batch_size # 256 x 10
-
-            # other options 
-            dCE_dW[i] = torch.bmm(dCE_dZ.unsqueeze(2), self.features[i].unsqueeze(1))  # 512 x 10 x 256
-            dCE_dW[i] = torch.transpose(dCE_dW[i], dim0=1, dim1=2) # 512 x 256 x 10
-            # dCE_dW[i] = torch.matmul(self.features[i].T, dCE_dZ) / batch_size # 256 x 10
-
-            # compute bias gradients (same as node / feature gradient)
-            dCE_db[i] = dCE_dZ.mean(dim=0) # 1 x 10
-
-            if i > 0:
-                dCE_dO[i - 1] = torch.matmul(dCE_dZ, self.weights[i].T)  # 512 x 256
-
-        # update weights & biases
-        for i in range(self.num_layers):
-            self.weights[i] -= self.learning_rate * dCE_dW[i]#.mean(dim=0)
-            self.biases[i] -= self.learning_rate * dCE_db[i]
+        # Update weights and biases
+        self.weights[-1] -= self.learning_rate * dL_dW
+        self.biases[-1] -= self.learning_rate * dL_db
         
+        # Update weights and biases for hidden layers
+        for layer_num in range(self.num_layers - 2, -1, -1):
+            z_out = self.features[layer_num * 2 + 1]
+            x_in = self.features[layer_num * 2]
+
+            # Calculate gradients
+            dL_dZ = self.activation_function.backward(delta, z_out)
+            dL_dW = torch.matmul(x_in.T, dL_dZ) / x_in.shape[0]
+            dL_db = dL_dZ.mean(dim = 0)
+
+            delta = torch.matmul(dL_dZ, self.weights[layer_num].T)
+
+            # Update weights and biases
+            self.weights[layer_num] -= self.learning_rate * dL_dW
+            self.biases[layer_num] -= self.learning_rate * dL_db
+
         return
 
-
 def TrainMLP(model: MLP, x_train: torch.tensor, y_train: torch.tensor) -> MLP:
-    #Complete this function
     '''
     This function should train the MLP for 1 epoch, using the provided data and forward/backward propagating as necessary.
     '''
@@ -141,26 +127,22 @@ def TrainMLP(model: MLP, x_train: torch.tensor, y_train: torch.tensor) -> MLP:
 
     #variable to accumulate total loss over the epoch
     L = 0
-    A = 0
 
-    for i in tqdm.tqdm(range(N // bs)):
+    for i in tqdm.tqdm(range(N // bs)): 
         x = x_train[idx[i * bs:(i + 1) * bs], ...]
         y = y_train[idx[i * bs:(i + 1) * bs], ...]
 
         #forward propagate and compute loss (l) here
-        y_hat = model.forward(x=x)
-        p = torch.exp(y_hat)
-        p /= torch.sum(p, dim = 1, keepdim = True)
+        y_hat = model.forward(x)
+        p = torch.exp(y_hat) # Softmax numerator
+        p /= torch.sum(p, dim = 1, keepdim = True) # Softmax denominator
         l = -1 * torch.sum(y * torch.log(p))
         L += l
         
         #backpropagate here
-        model.backward(p-y)
+        model.backward(p - y)
 
-        A += torch.sum(torch.where(torch.argmax(p, dim = 1) == torch.argmax(y, dim = 1), 1, 0))
-
-    print("Train Loss:", L / ((N // bs) * bs), "Train Accuracy: {:.2f}%".format(100 * A / ((N // bs) * bs)))
-
+    print("Train Loss:", L / ((N // bs) * bs))
 
 def TestMLP(model: MLP, x_test: torch.tensor, y_test: torch.tensor) -> tuple[float, float]:
     bs = model.batch_size
@@ -193,7 +175,7 @@ def normalize_mnist() -> tuple[torch.tensor, torch.tensor, torch.tensor, torch.t
 
     #IMPORTANT!!!#
     #UPDATE THE PATH BELOW!#
-    base_path = '/home/kieran/Documents/Spring 2025/DeepLearning/Lab1/MNIST/'
+    base_path = "./MNIST/"
     #^^^^^^^^#
     #Update this to point to your downloaded MNIST files.
     #E.g., if you've downloaded the data to {SomePath}/Downloads, you would put {SomePath}/Downloads/MNIST/
@@ -231,7 +213,7 @@ def main():
 
     model = MLP([784, 256, 10])
     model.initialize()
-    model.set_hp(lr = 1e-6, bs = 512, activation = ReLU)
+    model.set_hp(lr = 1e-3, bs = 512, activation = ReLU)
 
     E = 25
     for _ in range(E):
