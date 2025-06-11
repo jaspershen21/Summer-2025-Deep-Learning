@@ -1,7 +1,5 @@
 # CSCI 5922 Stuff
-caic-python/
-MNIST/
-*.pkl
+CSCI 5922 Neural Networks and Deep Learning/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
