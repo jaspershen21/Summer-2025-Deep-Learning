@@ -36,21 +36,22 @@ for raw_file_name in raw_evaluation_file_names:
     ica.apply(raw)
 
     # Epoching data by events
-    events, event_id = mne.events_from_annotations(raw)
-
-    epochs = mne.Epochs(
-        raw,
-        events,
-        event_id = [event_id["783"]],
-        tmin = -0.5,
-        tmax = 3.5,
-        reject_by_annotation = True,
-        preload = True,
-        baseline = (None, 0)
-    )
+    events, _ = mne.events_from_annotations(raw, event_id = {"783": 783})
 
     # Label epochs with true labels
     true_labels = scipy.io.loadmat(TRUE_LABEL_PATH)["classlabel"].flatten()
-    epochs.events[:, 2] = true_labels
+    label_map = {1: 769, 2: 770, 3: 771, 4: 772}
+    mapped_labels = [label_map[label] for label in true_labels]
+    events[:, 2] = mapped_labels
+    
+    epochs = mne.Epochs(
+        raw,
+        events,
+        event_id = {"left": 769, "right": 770, "foot": 771, "tongue": 772},
+        tmin = -0.5,
+        tmax = 3.5,
+        preload = True,
+        baseline = (None, 0)
+    )
 
     epochs.save(PROCESSED_FILE_PATH, overwrite = True)

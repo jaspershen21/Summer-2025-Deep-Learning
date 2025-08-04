@@ -41,12 +41,12 @@ for raw_file_name in raw_training_file_names:
     ica.apply(raw, exclude = eog_indices)
 
     # Epoching data by events
-    events, event_id = mne.events_from_annotations(raw)
-
+    event_id = {"769": 769, "770": 770, "771": 771, "772": 772}
+    events, _ = mne.events_from_annotations(raw, event_id = event_id)
     epochs = mne.Epochs(
         raw,
         events,
-        event_id = [event_id["769"], event_id["770"], event_id["771"], event_id["772"]],
+        event_id = {"left": 769, "right": 770, "foot": 771, "tongue": 772},
         tmin = -0.5,
         tmax = 3.5,
         picks = "eeg",
@@ -55,8 +55,8 @@ for raw_file_name in raw_training_file_names:
         baseline = (None, 0)
     )
 
-    true_labels = scipy.io.loadmat(TRUE_LABEL_PATH)["classlabel"].flatten()
-    epochs.events[:, 2] = true_labels
+    print(epochs.events)
+    print(epochs.event_id)
 
     epochs.save(PROCESSED_FILE_PATH, overwrite = True)
 
