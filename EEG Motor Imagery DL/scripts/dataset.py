@@ -30,7 +30,7 @@ class BCIDataset(Dataset):
 
     def __len__(self):
         """ Returns the number of samples in the dataset. """
-        return len(self.epochs)
+        return len(self.X)
     
     def __getitem__(self, idx):
         """
@@ -41,6 +41,6 @@ class BCIDataset(Dataset):
         """
 
         sample = torch.from_numpy(self.X[idx])
-        label = torch.from_numpy(self.y[idx])
+        label = torch.from_numpy(np.array(self.y[idx]))
 
         return sample, label # (X, y) pair
