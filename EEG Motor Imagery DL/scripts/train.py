@@ -12,11 +12,12 @@ from model import EEGNet
 
 def parse_args():
     parser = argparse.ArgumentParser(description = "Train EEGNet model for motor imagery classification")
-    parser.add_argument("--data_dir", type = str, default = "./../data", help = "Directory containing the EEG data files")
+    parser.add_argument("--data_dir", type = str, default = "./../data/processed", help = "Directory containing the EEG data files")
     parser.add_argument("--epochs", type = int, default = 100, help = "Number of training epochs")
     parser.add_argument("--batch_size", type = int, default = 32, help = "Batch size for training")
     parser.add_argument("--learning_rate", type = float, default = 0.001, help = "Learning rate for the optimizer")
     parser.add_argument("--save-dir", type = str, default = "./../models", help = "Directory to save the best model")
+    parser.add_argument("--save-file-name", type = str, default = "best_model.pth", help = "Filename for the saved model")
 
     return parser.parse_args()
 

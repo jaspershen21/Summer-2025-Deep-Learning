@@ -22,7 +22,7 @@ class BCIDataset(Dataset):
         self.X = combined_epoch.get_data(picks = "eeg", copy = False).astype(np.float32)
         self.X = np.expand_dims(self.X, axis = 1) # Add channel dimension (batch_size, 1, channels, time)
         first_event_id = 769
-        self.y = (combined_epoch.events[:, -1] - first_event_id).astype(np.int32) # Zero-index labels
+        self.y = (combined_epoch.events[:, -1] - first_event_id).astype(np.int64) # Zero-index labels
 
         print(f"Loaded a total of {len(self.X)} trials.")
         print(f"Data shape (X): {self.X.shape}") # Should be (trials, 1, channels, time)
