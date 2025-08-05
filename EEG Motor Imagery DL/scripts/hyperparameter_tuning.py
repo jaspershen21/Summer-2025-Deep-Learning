@@ -15,13 +15,11 @@ from model import EEGNet
 def parse_args():
     parser = argparse.ArgumentParser(description = "Train EEGNet model for motor imagery classification")
     parser.add_argument("--data-dir", type = str, default = "./../data/processed", help = "Directory containing the EEG data files")
-    parser.add_argument("--epochs", type = int, default = 100, help = "Number of training epochs")
+    parser.add_argument("--epochs", type = int, default = 200, help = "Number of training epochs")
     parser.add_argument("--batch-size", type = int, default = 32, help = "Batch size for training")
     parser.add_argument("--learning-rate", type = float, default = 0.001, help = "Learning rate for the optimizer")
     parser.add_argument("--dropout-rate", type = float, default = 0.5, help = "Dropout rate for regularization")
     parser.add_argument("--weight-decay", type = float, default = 0.0, help = "Weight decay (L2 regularization) for the optimizer")
-    parser.add_argument("--save-dir", type = str, default = "./../models", help = "Directory to save the best model")
-    parser.add_argument("--save-file-name", type = str, default = "best_model.pth", help = "Filename for the saved model")
 
     return parser.parse_args()
 
@@ -137,7 +135,7 @@ if __name__ == "__main__":
     # Cross-Validation Summary
     print("\n" + "="*50)
     print("CROSS-VALIDATION COMPLETE")
-    print(f"Hyperparameters: LR={args.learning_rate}, Dropout={args.dropout_rate}, WeightDecay={args.weight_decay}")
+    print(f"Hyperparameters: Batch Size = {args.batch_size}, LR = {args.learning_rate}, Dropout = {args.dropout_rate}, Weight Decay = {args.weight_decay}")
     print("="*50)
 
     mean_accuracy = np.mean(fold_accuracies)
