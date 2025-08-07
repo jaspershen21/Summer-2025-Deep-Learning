@@ -118,5 +118,4 @@ variables/
 *.tar.gz
 *.zip
 *.tar
-results/
 outputs/
